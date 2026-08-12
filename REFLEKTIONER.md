@@ -41,3 +41,12 @@ Problemet här var att deserialiseraren (Json.NET) var inställd på TypeNameHan
 När ett objekt skapas körs dess konstruktor och setters, och med rätt befintliga klasser kan en angripare kedja ihop det till att köra godtycklig kod direkt på servern, t.ex. läsa filer, ladda in kod eller ta över maskinen. Men mekanismen är alltså annorlunda än de tidigare sårbarheterna, då det handlar om kodkörning på själva servern och inte bara i en webbläsare eller mot en databas.
 
 Fixen var att sätta TypeNameHandling.None, så att indatan aldrig får välja typ, utan bara de klasser som koden själv deklarerat används. Mer generellt bör man undvika att deserialisera data man inte litar på till öppna typer som object, och hellre använda tydligt definierade dataklasser. Måste man ändå ha typinformation med i datan får man vitlista exakt vilka typer som är tillåtna. Summan av kardemumman är att data aldrig ska få bestämma vilken kod som körs.
+
+
+6. VULNERABLE AND OUTDATED COMPONENTS
+
+Den här var annorlunda, för felet fanns inte i min egen kod utan i ett beroende. Det handlar om typosquatting, alltså att en angripare lägger upp ett fejkpaket med ett namn som är nästan rättstavat och hoppas att någon skriver fel när de lägger till det. Här var det Swashbukle.AspNetCore istället för det äkta Swashbuckle.AspNetCore (ett c saknades), och det fanns faktiskt två sådana felstavade paket. Fejkpaketet hade smugit in sig i System.Linq-namespacet och kapat den helt vanliga .ToArray()-metoden, så koden kördes utan att jag anropat något skumt alls.
+
+Det farliga är att man kör kod man inte skrivit, med samma rättigheter som resten av appen. Hos oss skrev fejkpaketet bara ut ett meddelande, men ett riktigt fejkpaket skulle lika gärna kunna stjäla data, lägga in en bakdörr eller köra kod på servern. Supply chain-attacker är extra lömska eftersom man litar på sina beroenden mer eller mindre blint, och det är svårt att upptäcka en enda felstavad bokstav i en lång paketlista. Log4Shell och dependency confusion-attackerna mot Apple och Microsoft är exempel på hur illa det kan gå i verkligheten.
+
+Fixen var att byta ut de felstavade paketnamnen mot de äkta, båda två. En läxa jag fick på köpet var att man inte bara ska ta bort ett beroende man är osäker på, för jag råkade radera det ena istället för att rätta det, och då slutade bygget funka eftersom koden faktiskt använde det. För att förebygga det här bör man använda automatisk beroendeskanning som Dependabot, låsa fast versioner och vara noga med att dubbelkolla paketnamn och utgivare innan man lägger till något.

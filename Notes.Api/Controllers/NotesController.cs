@@ -95,6 +95,7 @@ public class NotesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult<Note> Patch([FromRoute] int noteId, [FromBody] UpdateNote patchNote)
     {
@@ -102,6 +103,13 @@ public class NotesController : ControllerBase
         if (note == null)
         {
             return NotFound($"Note with noteId {noteId} not found");
+        }
+
+        var authorizationHeader = Request.Headers["Authorization"];
+        var user = BasicAuthenticationHandler.GetUserFrom(authorizationHeader);
+        if (note.Author != user.Username)
+        {
+            return Forbid();
         }
 
         note.Content = patchNote.Content;
@@ -116,6 +124,7 @@ public class NotesController : ControllerBase
     [HttpDelete("{noteId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult<Note> Delete([FromRoute] int noteId)
     {
@@ -123,6 +132,13 @@ public class NotesController : ControllerBase
         if (note == null)
         {
             return NotFound($"Note with noteId {noteId} not found");
+        }
+
+        var authorizationHeader = Request.Headers["Authorization"];
+        var user = BasicAuthenticationHandler.GetUserFrom(authorizationHeader);
+        if (note.Author != user.Username)
+        {
+            return Forbid();
         }
 
         _database.Notes.Remove(note);

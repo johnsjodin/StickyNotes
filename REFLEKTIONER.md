@@ -23,3 +23,12 @@ Den här sårbarheten är den jag nämnde ovan, vilken möjliggör att en person
 Det klassiska målet med XSS-injektion är att få tillgång till en persons session och/eller lösenord, och på så sätt kapa deras konto, eftersom koden körs med offrets egna identitet.
 
 Fixen kan vara så enkel som att, som md-filen säger, att se till att browsern skriver ut text som text och inte som html, samt att vissa ramverk inom webutveckling hjälper till att förhindra XSS-injektion som standard.
+
+
+4. SQL INJECTION
+
+Ännu en injektions-exploit, liknande XSS men angriper databasen istället för browsern. Problemet här är att appen bygger sina queries med ren strängkonkatenering, alltså att användarens sökord klistras rakt in i själva SQL-satsen. Då kan databasen inte skilja på vad som är kod och vad som är data från användaren, så via input-fältet kan man då injicera en helt annan query än den som var tänkt och komma åt sånt man inte är behörig till.
+
+Konsekvenserna är värre än med XSS för det är själva datalagret som träffas, där all data faktiskt ligger. Det handlar inte bara om att tjuvkika på andras notiser, utan man kan potentiellt dra ut hela databasen, typ lösenordstabeller, kreditkortsnummer och annat känsligt, eller till och med ändra och radera data. Det är därför SQL-injektion brukar rankas som en av de allra farligaste sårbarheterna.
+
+Lösningen är parametriserade frågor (prepared statements). Då skickas frågans struktur och användarens data separat till databasen, så datan behandlas alltid som ett värde och aldrig som kod. Då spelar det ingen roll vad man skriver i input-fältet, injicerad SQL slutar helt enkelt funka. En ORM som EF Core fixar det här automatiskt så länge man skriver sina queries i LINQ istället för rå SQL, vilket är precis det som fixen gjorde.

@@ -31,4 +31,13 @@ Fixen kan vara så enkel som att, som md-filen säger, att se till att browsern 
 
 Konsekvenserna är värre än med XSS för det är själva datalagret som träffas, där all data faktiskt ligger. Det handlar inte bara om att tjuvkika på andras notiser, utan man kan potentiellt dra ut hela databasen, typ lösenordstabeller, kreditkortsnummer och annat känsligt, eller till och med ändra och radera data. Det är därför SQL-injektion brukar rankas som en av de allra farligaste sårbarheterna.
 
-Lösningen är parametriserade frågor (prepared statements). Då skickas frågans struktur och användarens data separat till databasen, så datan behandlas alltid som ett värde och aldrig som kod. Då spelar det ingen roll vad man skriver i input-fältet, injicerad SQL slutar helt enkelt funka. En ORM som EF Core fixar det här automatiskt så länge man skriver sina queries i LINQ istället för rå SQL, vilket är precis det som fixen gjorde.
+Lösningen är parametriserade frågor (prepared statements). Då skickas frågans struktur och användarens data separat till databasen, så datan behandlas alltid som ett värde och aldrig som kod. Då spelar det ingen roll vad man skriver i input-fältet, injicerad SQL slutar helt enkelt funka. En ORM som EF Core fixar det här automatiskt så länge man skriver sina queries i LINQ istället för rå SQL, vilket är precis det som fixen i md-filen gjorde.
+
+
+5. INSECURE DESERIALIZATION
+
+Problemet här var att deserialiseraren (Json.NET) var inställd på TypeNameHandling.Auto, vilket lät den inkommande JSON-datan själv peka ut vilken klass den skulle bli, via ett specialfält som heter $type. Med andra ord var det angriparen, inte utvecklaren, som fick bestämma vilken kod som kördes. Genom att skicka in $type som pekade på en intern klass fick jag servern att skapa ett objekt av den och köra dess kod, vilket i det här fallet bara skrev ut "Access granted" i konsolen.
+
+När ett objekt skapas körs dess konstruktor och setters, och med rätt befintliga klasser kan en angripare kedja ihop det till att köra godtycklig kod direkt på servern, t.ex. läsa filer, ladda in kod eller ta över maskinen. Men mekanismen är alltså annorlunda än de tidigare sårbarheterna, då det handlar om kodkörning på själva servern och inte bara i en webbläsare eller mot en databas.
+
+Fixen var att sätta TypeNameHandling.None, så att indatan aldrig får välja typ, utan bara de klasser som koden själv deklarerat används. Mer generellt bör man undvika att deserialisera data man inte litar på till öppna typer som object, och hellre använda tydligt definierade dataklasser. Måste man ändå ha typinformation med i datan får man vitlista exakt vilka typer som är tillåtna. Summan av kardemumman är att data aldrig ska få bestämma vilken kod som körs.
